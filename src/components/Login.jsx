@@ -1,8 +1,80 @@
+import { checkValidData } from "../utils/validate";
 import Header from "./Header";
-import { useState } from "react";
+import { useState, useRef } from "react";
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile } from "firebase/auth";
+import { auth } from "../utils/firebase"
+import { useNavigate } from "react-router-dom";
+import { useDispatch } from "react-redux";
+import { addUser } from "../utils/userSlice";
 
 const Login = () => {
   const [isSignInForm, setIsSignInForm]= useState(true)
+  const [errorMessage, setErrorMessage]= useState(null)
+  const navigate = useNavigate();
+  const dispatch = useDispatch(); 
+
+  const name= useRef(null)
+  const email= useRef(null)
+  const password= useRef(null)
+
+
+  const handleButtonClick = () => {
+    const message = checkValidData(email.current.value, password.current.value)
+    setErrorMessage(message)
+
+    if (message) {
+      setTimeout(() => {
+        setErrorMessage(null);
+      }, 5000); // 5 
+      
+      return;
+    }
+
+    console.log(isSignInForm)
+    if(!isSignInForm){
+      console.log("HI i am in signup form")
+      createUserWithEmailAndPassword(auth, email.current.value, password.current.value)
+      .then((userCredential) => {
+        // Signed up 
+        const user = userCredential.user;
+        updateProfile(user, {
+          displayName: name.current.value,
+        })
+         .then(() => {
+           const { uid, email, displayName} = auth.currentUser;
+           dispatch(addUser({uid: uid, email: email, displayName: displayName}));
+           navigate("/browse")
+         })
+         .catch((error) => {
+           setErrorMessage(error.message)
+         })
+      })
+      .catch((error) => {
+        const errorCode = error.code;
+        const errorMessage = error.message;
+
+        setErrorMessage(errorCode + " --==- " + errorMessage);
+        
+      });
+    }
+    else{
+      console.log("HI i am in signIn form")
+      signInWithEmailAndPassword(auth, email.current.value, password.current.value)
+      .then((userCredential) => {
+        // Signed in 
+        const user = userCredential.user;
+        navigate("/browse")
+      })
+      .catch((error) => {
+        const errorCode = error.code;
+        const errorMessage = error.message;
+
+        setErrorMessage(errorCode + " " + errorMessage);
+      });
+    }
+
+
+  }
 
   const toggleSignInForm= () => {
     setIsSignInForm(!isSignInForm)
@@ -23,35 +95,41 @@ const Login = () => {
       </div>
 
       {/* Overlay */}
-      <div className="absolute inset-0 w-full bg-black opacity-50 z-10 h-full" />
+      <div className="absolute inset-0 w-full bg-black opacity-55 z-10 h-full" />
 
 
       {/* Sign In Form */}
       <div className="relative z-10 flex items-center justify-center h-full">
-        <div className="bg-black opacity-85 px-10 py-8 rounded-md max-w-md w-full text-white mt-20">
-          <h1 className="text-3xl font-semibold mb-6">{!isSignInForm ? "Sign In" : "Sign Up"}</h1>
+        <div className="bg-black opacity-80 px-10 py-8 rounded-md max-w-md w-full text-white mt-20">
+          <h1 className="text-3xl font-semibold mb-6">{isSignInForm ? "Sign In" : "Sign Up"}</h1>
 
-          <form className="flex flex-col space-y-4">
+          <form className="flex flex-col space-y-4" onSubmit= {(e) => e.preventDefault()}>
             {
-              isSignInForm && 
+              !isSignInForm && 
                 <input
+                  ref= {name}
                   type="text"
                   placeholder="Full Name"
                   className="bg-[#333] text-white px-4 py-3 rounded focus:outline-none"
                 />
             }
             <input
+              ref= {email}
               type="email"
               placeholder="Email or mobile number"
               className="bg-[#333] text-white px-4 py-3 rounded focus:outline-none"
             />
             <input
+              ref= {password}
               type="password"
               placeholder="Password"
               className="bg-[#333] text-white px-4 py-3 rounded focus:outline-none"
             />
-            <button className="bg-red-600 hover:bg-red-700 cursor-pointer transition font-semibold py-3 rounded">
-              {!isSignInForm ? "Sign In" : "Sign Up"}
+
+            <p className="text-red-500 font-bold text-lg py-2">{errorMessage}</p>
+
+            <button className="bg-red-600 hover:bg-red-700 cursor-pointer transition font-semibold py-3 rounded opacity-{100}" onClick={handleButtonClick}>
+              {isSignInForm ? "Sign In" : "Sign Up"}
             </button>
           </form>
 
@@ -66,9 +144,9 @@ const Login = () => {
           </div>
 
           <div className="text-sm text-gray-400 mt-6">
-            {!isSignInForm ? "New to Netflix?" : "Already a User"} {" "}
+            {isSignInForm ? "New to Netflix?" : "Already a User"} {" "}
             <a href="#" className="text-white hover:underline" onClick={toggleSignInForm}>
-              {!isSignInForm ? "Sign Up Now" : "Sign In Now"}
+              {isSignInForm ? "Sign Up Now" : "Sign In Now"}
             </a>
           </div>
 
