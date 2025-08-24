@@ -1,6 +1,6 @@
 import { useDispatch } from "react-redux"
 import { addTrendingMovies } from "../utils/moviesSlice"
-import { API_OPTIONS, API_URL } from "../utils/constants"
+import { API_OPTIONS, API_URL_TRENDING } from "../utils/constants"
 import { useEffect } from "react"
 
 
@@ -8,9 +8,9 @@ const useGetTrendingMovies = () => {
     const dispatch = useDispatch()
     
       const getTrendingMovies = async () => {
-        const data = await fetch(API_URL, API_OPTIONS)
+        const data = await fetch(API_URL_TRENDING, API_OPTIONS)
         const json = await data.json()
-        console.log(json.results)
+        console.log("getTrending", json.results)
     
         dispatch(addTrendingMovies(json.results))
     
